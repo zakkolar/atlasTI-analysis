@@ -37,7 +37,7 @@
           <td>{{user}}</td>
           <td v-for = "code in displayedCodes" v-bind:key="code.id">
             <span v-if="userCodes[code.id] && !userCodes[code.id].hasCodeWithIds(ignoredCodes)">
-              {{userCodes[code.id].location.duration}}
+              {{userCodes[code.id].location.duration | seconds}}
             </span>
           </td>
         </tr>
@@ -100,6 +100,13 @@ export default {
   },
   methods: {
 
+  },
+  filters:{
+    seconds(string){
+      let moment = require('moment')
+      let dur = moment.duration(splitTimeString(string))
+      return dur.asSeconds()
+    }
   }
 }
 
