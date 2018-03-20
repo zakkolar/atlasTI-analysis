@@ -1,31 +1,44 @@
 <template>
   <div>
-    <h2>Task Duration</h2>
-    <p>Code > Output > Codebook</p>
-    <p>Grouping: no grouping</p>
-    <p>Report options:</p>
-    <ul>
-      <li>Quotations
+    <h1>Task Duration</h1>
+    <div class="row">
+      <div class="col-6">
+        <h2>Ignore quotes with these codes:</h2>
         <ul>
-          <li>In Document</li>
+          <li v-for = "code in codes" v-bind:key="code.id">
+            <label>
+              <input type="checkbox" v-bind:value="code.id" v-model="ignoredCodes"> {{code.name}}
+            </label>
+          </li>
         </ul>
-      </li>
-    </ul>
-    <input type="file" @change="loadFile">
+      </div>
+      <div class="col-6">
+        <h2>Display only these codes:</h2>
+        <ul>
+          <li v-for = "code in codes" v-bind:key="code.id">
+            <label>
+              <input type="checkbox" v-bind:value="code.id" v-model="displayCodes"> {{code.name}}
+            </label>
+          </li>
+        </ul>
+      </div>
+    </div>
     <table>
       <thead>
         <tr>
           <th>User</th>
-          <th v-for = "code in codeList" v-bind:key="code">
-            {{code}}
+          <th v-for = "code in displayedCodes" v-bind:key="code.id">
+            {{code.name}}
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for = "(codes, user) in users" v-bind:key="user">
+        <tr v-for = "(userCodes, user) in users" v-bind:key="user">
           <td>{{user}}</td>
-          <td v-for = "code in codeList" v-bind:key="code">
-            <span v-if="codes[code]">{{codes[code].duration}}</span>
+          <td v-for = "code in displayedCodes" v-bind:key="code.id">
+            <span v-if="userCodes[code.id] && !userCodes[code.id].hasCodeWithIds(ignoredCodes)">
+              {{userCodes[code.id].location.duration}}
+            </span>
           </td>
         </tr>
       </tbody>
@@ -34,55 +47,64 @@
 </template>
 
 <script>
+/* eslint-disable */
 
-import {LoadFileFromInput} from '../LoadFileFromInput'
-import {CodeExtractor} from '../CodeExtractor'
 
 export default {
   name: 'task-duration',
   data () {
     return {
-      codeList: [],
-      users: []
+      ignoredCodes:[],
+      displayCodes:[]
+    }
+  },
+  computed: {
+    project () {
+      return this.$store.getters['project']
+    },
+    quotes () {
+      return this.project.quotes
+    },
+    codes () {
+      return this.project.codes
+    },
+    documents() {
+      return this.project.documents
+    },
+    displayedCodes(){
+      let codes = {};
+      for(let codeId in this.codes){
+        if(this.displayCodes.indexOf(codeId)>-1){
+          codes[codeId] = this.codes[codeId]
+        }
+      }
+      return codes;
+    },
+    users () {
+      let users = {}
+      for (let codeId in this.codes) {
+        let code = this.codes[codeId]
+        for(let quote of code.quotes){
+          let doc = quote.document
+          let user = getUserFromDocumentName(doc.name)
+          if (!users.hasOwnProperty(user)){
+            users[user] = {}
+          }
+          users[user][code.id] = quote
+        }
+
+      }
+
+      return users
     }
   },
   methods: {
-    loadFile (e) {
-      LoadFileFromInput(e.target, (result) => {
-        let codeExtractor = new CodeExtractor(result)
-        let codes = codeExtractor.getCodes()
 
-        this.codeList = codes.map((code) => {
-          return code.code
-        })
-
-        this.users = this.transformCodes(codes)
-      })
-    },
-    transformCodes (codes) {
-      let users = {}
-      let moment = require('moment')
-      for (let code of codes) {
-        for (let instance of code.instances) {
-          if (!users.hasOwnProperty(instance.user)) {
-            users[instance.user] = {}
-          }
-
-          let start = moment.duration(splitTimeString(instance.start))
-          let end = moment.duration(splitTimeString(instance.end))
-
-          let duration = end.subtract(start).asSeconds()
-
-          users[instance.user][code.code] = {
-            start: instance.start,
-            end: instance.end,
-            duration: duration
-          }
-        }
-      }
-      return users
-    }
   }
+}
+
+function getUserFromDocumentName (name) {
+  return name.split(' ')[0]
 }
 
 function splitTimeString (msS) {

@@ -7,7 +7,10 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
-          <li class="nav-item active">
+          <li class="nav-item">
+            <router-link class="nav-link" to="/load-project">Load Project</router-link>
+          </li>
+          <li class="nav-item">
             <router-link class="nav-link" to="/task-duration">Task Duration</router-link>
           </li>
         </ul>
@@ -15,7 +18,11 @@
     </nav>
 
     <div class="container">
-      <router-view></router-view>
+      <div class="row">
+        <div class="col">
+          <router-view></router-view>
+        </div>
+      </div>
     </div>
 
   </div>
